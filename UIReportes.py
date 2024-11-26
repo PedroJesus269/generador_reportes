@@ -52,6 +52,14 @@ def get_reporte_date(file_path):
     
     return formatted_date
 
+# Función para formatear el tiempo como horas:minutos
+def format_duration(td):
+    if isinstance(td, pd.Timedelta):
+        total_seconds = td.total_seconds()
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        return f"{hours:02d}:{minutes:02d}"
+    return "00:00"  # En caso de que el valor no sea un Timedelta
 
 def generate_daily_report(caution_df, alarm_df, report_date):
     # Verificar si los DataFrames están vacíos antes de continuar
@@ -81,7 +89,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
     combined_df = combined_df.drop(columns=['Type_priority'])  # Eliminar columna auxiliar
 
 
-        # Crear columna de 'Duration' en formato min:segundos
+    # Crear columna de 'Duration' en formato min:segundos
     durations = []
     for i in range(len(combined_df) - 1):
         end_time = combined_df.iloc[i + 1]['Date']
@@ -176,27 +184,42 @@ def generate_daily_report(caution_df, alarm_df, report_date):
             minutes = int((total_seconds % 3600) // 60)
             duration_text = f"{hours:02d}:{minutes:02d}"
             
-            # Añadir texto verticalmente centrado
-            ax.text(start + row['Duration'] / 2, 0, duration_text, ha='center', va='center', 
-                    fontsize=9, color='black', rotation=90)
+            # Añadir texto verticalmente centrado o hacia abajo para barras blancas
+            if color in ['white']:  # Verifica si la barra es blanca
+                ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
+                        fontsize=9, color='black', rotation=90)
+            else:
+                ax.text(start + row['Duration'] / 2, 0, duration_text, ha='center',
+                        fontsize=9, color='black', rotation=90)
 
     ax.set_yticks([])
-    ax.set_title(f'{report_date} - Sensores Mina', fontsize=16, pad=20)
+    ax.set_title(f'{report_date} - Sensores Mina', fontsize=16, pad=20, loc='left')
 
-    legend_patches = [mpatches.Patch(color=color, label=status) for status, color in status_colors.items()]
-    ax.legend(handles=legend_patches, loc='upper right')
+    # Filtrar solo las alertas de interés para la leyenda
+    legend_status = ['Red', 'Yellow', 'Grey']
+    legend_patches = [
+        mpatches.Patch(color=color, label='Alerta Roja' if status == 'Red' else 
+                                        'Alerta Amarilla' if status == 'Yellow' else 
+                                        'Libre entre Alertas <=1hr' if status == 'Grey' else status) 
+        for status, color in status_colors.items() if status in legend_status
+    ]
+
+    # Crear la leyenda arriba a la derecha, encima de la gráfica
+    ax.legend(handles=legend_patches, loc='lower right', bbox_to_anchor=(1, 1.05), ncol=5)
 
     # Crear la tabla con las métricas
     total_alert_duration = total_yellow_duration + total_red_duration
     total_combined_duration = total_alert_duration + total_grey_duration
 
+
     table_data = [
-        ['Tiempo Alerta Amarilla', str(total_yellow_duration)],
-        ['Tiempo Alerta Roja', str(total_red_duration)],
-        ['Total Alertas (Amarilla+Roja)', str(total_alert_duration)],
-        ['Total Tiempo Libre Entre Alertas (<=1Hr)', str(total_grey_duration)],
-        ['Total Alertas + Tiempo Libre Entre Alertas', str(total_combined_duration)]
+        ['Tiempo Alerta Amarilla', format_duration(total_yellow_duration)],
+        ['Tiempo Alerta Roja', format_duration(total_red_duration)],
+        ['Total Alertas (Amarilla+Roja)', format_duration(total_alert_duration)],
+        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total_grey_duration)],
+        ['Total Alertas + Tiempo Libre Entre Alertas', format_duration(total_combined_duration)]
     ]
+
 
     # Añadir la tabla a la gráfica
     table = ax.table(cellText=table_data, loc='bottom', cellLoc='center', colLoc='center', bbox=[0.1, -0.533, 0.8, 0.3])
@@ -438,7 +461,7 @@ def generate_report(df, file_name):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
+    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.png", width=Pt(100))
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
