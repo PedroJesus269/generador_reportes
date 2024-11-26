@@ -4,3 +4,4 @@ matplotlib==3.8.0
 pandas==2.1.1
 numpy==1.23.5
 python-docx==0.8.11
+setuptools
