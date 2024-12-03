@@ -541,7 +541,7 @@ def cargar_archivo():
 
 # Mostrar el logo (asegúrate de tener el archivo en la ruta correcta)
 try:
-    imagen = Image.open("generador_reportes/images/logo.png")
+    imagen = Image.open("/generador_reportes/images/logo.png")
     imagen = imagen.resize((100, 50), Image.Resampling.LANCZOS)
     st.image(imagen, use_container_width=False)
 except FileNotFoundError:
