@@ -216,7 +216,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
         ['Tiempo Alerta Amarilla', format_duration(total_yellow_duration)],
         ['Tiempo Alerta Roja', format_duration(total_red_duration)],
         ['Total Alertas (Amarilla+Roja)', format_duration(total_alert_duration)],
-        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total__duration)],
+        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total_grey_duration)],
         ['Total Alertas + Tiempo Libre Entre Alertas', format_duration(total_combined_duration)]
     ]
 
