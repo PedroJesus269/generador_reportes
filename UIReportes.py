@@ -209,7 +209,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
 
     # Crear la tabla con las métricas
     total_alert_duration = total_yellow_duration + total_red_duration
-    total_combined_duration = total_alert_duration + total__duration
+    total_combined_duration = total_alert_duration + total_duration
 
 
     table_data = [
