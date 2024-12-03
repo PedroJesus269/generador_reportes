@@ -461,7 +461,7 @@ def generate_report(df, file_name):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    cell_logo.paragraphs[0].add_run().add_picture("logo_doc.PNG", width=Pt(100))
+    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
