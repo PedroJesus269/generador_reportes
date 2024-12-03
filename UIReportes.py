@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Logo
+from PIL import images
 
 
 from datetime import timedelta
