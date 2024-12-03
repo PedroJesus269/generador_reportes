@@ -189,7 +189,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
                 ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
             else:
-                ax.text(start + row['Duration'] / 2, +0.3, duration_text, ha='center',
+                ax.text(start + row['Duration'] / 2, +0, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
 
     ax.set_yticks([])
