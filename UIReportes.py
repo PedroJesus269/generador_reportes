@@ -186,10 +186,10 @@ def generate_daily_report(caution_df, alarm_df, report_date):
             
             # Añadir texto verticalmente centrado o hacia abajo para barras blancas
             if color in ['white', 'Grey']:  # Verifica si la barra es blanca
-                ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
+                ax.text(start + row['Duration'] / 2, - 0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
             else:
-                ax.text(start + row['Duration'] / 2, 0, duration_text, ha='center',
+                ax.text(start + row['Duration'] / 2, + 0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
 
     ax.set_yticks([])
