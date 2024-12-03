@@ -185,7 +185,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
             duration_text = f"{hours:02d}:{minutes:02d}"
             
             # Añadir texto verticalmente centrado o hacia abajo para barras blancas
-            if color in ['white']:  # Verifica si la barra es blanca
+            if color in ['white', 'grey']:  # Verifica si la barra es blanca
                 ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
             else:
@@ -209,7 +209,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
 
     # Crear la tabla con las métricas
     total_alert_duration = total_yellow_duration + total_red_duration
-    total_combined_duration = total_alert_duration + total_duration
+    total_combined_duration = total_alert_duration + total_grey_duration
 
 
     table_data = [
