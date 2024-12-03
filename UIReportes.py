@@ -186,10 +186,10 @@ def generate_daily_report(caution_df, alarm_df, report_date):
             
             # Añadir texto verticalmente centrado o hacia abajo para barras blancas
             if color in ['white', 'Grey']:  # Verifica si la barra es blanca
-                ax.text(start + row['Duration'] / 2, - 0.3, duration_text, ha='center',
+                ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
             else:
-                ax.text(start + row['Duration'] / 2, + 0.3, duration_text, ha='center',
+                ax.text(start + row['Duration'] / 2, +0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
 
     ax.set_yticks([])
@@ -200,7 +200,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
     legend_patches = [
         mpatches.Patch(color=color, label='Alerta Roja' if status == 'Red' else 
                                         'Alerta Amarilla' if status == 'Yellow' else 
-                                        'Libre entre Alertas <=1hr' if status == 'Grey' else status) 
+                                        'Libre entre Alertas <=1hr' if status == '' else status) 
         for status, color in status_colors.items() if status in legend_status
     ]
 
@@ -209,14 +209,14 @@ def generate_daily_report(caution_df, alarm_df, report_date):
 
     # Crear la tabla con las métricas
     total_alert_duration = total_yellow_duration + total_red_duration
-    total_combined_duration = total_alert_duration + total_grey_duration
+    total_combined_duration = total_alert_duration + total__duration
 
 
     table_data = [
         ['Tiempo Alerta Amarilla', format_duration(total_yellow_duration)],
         ['Tiempo Alerta Roja', format_duration(total_red_duration)],
         ['Total Alertas (Amarilla+Roja)', format_duration(total_alert_duration)],
-        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total_grey_duration)],
+        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total__duration)],
         ['Total Alertas + Tiempo Libre Entre Alertas', format_duration(total_combined_duration)]
     ]
 
