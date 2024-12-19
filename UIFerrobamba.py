@@ -104,37 +104,24 @@ def generate_daily_report(caution_df, alarm_df, report_date):
 
 
     # Actualizar la columna 'Status' según las nuevas reglas definidas
-   def update_status(row):
-    # Si la columna 'Description' es 'Alarm' y 'Type' es 'Start', tiene la máxima prioridad
-    if row['Description'] == 'Alarm' and row['Type'] == 'Start':
-        return 'Red'
-
-    # Luego, si la columna 'Description' es 'Caution' y 'Type' es 'Start', se devuelve 'Yellow'
-    elif row['Description'] == 'Caution' and row['Type'] == 'Start':
-        return 'Yellow'
-    
-    # Si 'Type' es '-', devuelve 'Free-White'
-    if row['Type'] == '-':
-        return 'Free-White'
-
-    # Si 'Description' es 'Caution' y 'Type' es 'End'
-    elif row['Description'] == 'Caution' and row['Type'] == 'End':
-        if isinstance(row['Duration'], pd.Timedelta) and row['Duration'] < pd.Timedelta(hours=1):
+    def update_status(row):
+        if row['Duration'] == pd.Timedelta(0):
             return 'Grey'
-        elif isinstance(row['Duration'], pd.Timedelta) and row['Duration'] >= pd.Timedelta(hours=1):
-            return 'Caution-White'
 
-    # Si 'Description' es 'Alarm' y 'Type' es 'End', devuelve 'Yellow'
-    elif row['Description'] == 'Alarm' and row['Type'] == 'End':
-        return 'Yellow'
-
-    # Si 'Duration' es 0, devuelve 'Grey'
-    elif row['Duration'] == pd.Timedelta(0):
-        return 'Grey'
-
-    # Si 'Duration' es mayor a 0, pero no se cumple ninguna condición anterior, devuelve vacío
-    return ''
-
+        if row['Type'] == '-':
+            return 'Free-White'
+        elif row['Description'] == 'Caution' and row['Type'] == 'Start':
+            return 'Yellow'
+        elif row['Description'] == 'Caution' and row['Type'] == 'End':
+            if isinstance(row['Duration'], pd.Timedelta) and row['Duration'] < pd.Timedelta(hours=1):
+                return 'Grey'
+            elif isinstance(row['Duration'], pd.Timedelta) and row['Duration'] >= pd.Timedelta(hours=1):
+                return 'Caution-White'
+        elif row['Description'] == 'Alarm' and row['Type'] == 'Start':
+            return 'Red'
+        elif row['Description'] == 'Alarm' and row['Type'] == 'End':
+            return 'Yellow'
+        return ''
 
     # Aplicar la función para actualizar la columna 'Status'
     combined_df['Status'] = combined_df.apply(update_status, axis=1)
