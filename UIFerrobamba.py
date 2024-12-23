@@ -121,6 +121,9 @@ def generate_daily_report(caution_df, alarm_df, report_date):
             return 'Red'
         elif row['Description'] == 'Alarm' and row['Type'] == 'End':
             return 'Yellow'
+         # Nueva condición: Si la descripción actual es 'Caution' y la anterior fue 'Alarm', y ambos son 'Start'
+        elif row['Description'] == 'Caution' and row['Type'] == 'Start' and previous_description == 'Alarm':
+        return 'Red'
         return ''
 
     # Aplicar la función para actualizar la columna 'Status'
