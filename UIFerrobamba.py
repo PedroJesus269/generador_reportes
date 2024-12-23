@@ -122,7 +122,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
         elif row['Description'] == 'Alarm' and row['Type'] == 'End':
             return 'Yellow'
          # Nueva condición: Si la descripción actual es 'Caution' y la anterior fue 'Alarm', y ambos son 'Start'
-        if row['Description'] == 'Caution' and row['Type'] == 'Start' and previous_description == 'Alarm':
+        elif row['Description'] == 'Caution' and row['Type'] == 'Start' and previous_description == 'Alarm':
         return 'Red'
         return ''
 
