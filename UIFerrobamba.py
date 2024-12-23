@@ -104,7 +104,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
 
 
     # Actualizar la columna 'Status' según las nuevas reglas definidas
-    def update_status(row, previous_description=None):
+    def update_status(row):
         if row['Duration'] == pd.Timedelta(0):
             return 'Grey'
 
