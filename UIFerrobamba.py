@@ -104,7 +104,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
 
 
     # Actualizar la columna 'Status' según las nuevas reglas definidas
-    def update_status(row):
+    def update_status(row, previous_description=None):
         if row['Duration'] == pd.Timedelta(0):
             return 'Grey'
 
@@ -123,7 +123,7 @@ def generate_daily_report(caution_df, alarm_df, report_date):
             return 'Yellow'
          # Nueva condición: Si la descripción actual es 'Caution' y la anterior fue 'Alarm', y ambos son 'Start'
         elif row['Description'] == 'Caution' and row['Type'] == 'Start' and previous_description == 'Alarm':
-        return 'Red'
+            return 'Red'
         return ''
 
     # Aplicar la función para actualizar la columna 'Status'
