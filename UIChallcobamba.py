@@ -2,18 +2,6 @@ import streamlit as st
 from PIL import Image
 
 
-from datetime import timedelta
-from datetime import datetime
-
-
-import matplotlib.patches as mpatches
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import re
-
-
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.section import WD_ORIENT
 from docx.oxml.ns import nsdecls
@@ -24,225 +12,16 @@ from docx import Document
 from io import BytesIO
 
 
-# ****************** Extraer la fecha del nombre del archivo
-def get_reporte_date(file_path):
-    # Obtener solo el nombre del archivo
-    file_name = file_path.split("/")[-1]
-    # Buscar el patrón de fecha DD MM YY
-    date_match = re.search(r'(\d{2}) (\d{2}) (\d{2})', file_name)
-    
-    if date_match:
-        day = date_match.group(1)
-        month = int(date_match.group(2))
-        # Asumir que los años son del 2000 en adelante
-        year = "20" + date_match.group(3)
-
-        # Convertir el mes numérico a nombre en español
-        months = [
-            "enero", "febrero", "marzo", "abril", "mayo", "junio", 
-            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-        ]
-        month_name = months[month - 1]
-        
-        # Formatear la fecha
-        formatted_date = f"{day} de {month_name} del {year}"
-    else:
-        # Si no se encuentra la fecha en el nombre del archivo
-        formatted_date = None
-    
-    return formatted_date
-
-# Función para formatear el tiempo como horas:minutos
-def format_duration(td):
-    if isinstance(td, pd.Timedelta):
-        total_seconds = td.total_seconds()
-        hours = int(total_seconds // 3600)
-        minutes = int((total_seconds % 3600) // 60)
-        return f"{hours:02d}:{minutes:02d}"
-    return "00:00"  # En caso de que el valor no sea un Timedelta
-
-def generate_daily_report(caution_df, alarm_df, report_date):
-    # Verificar si los DataFrames están vacíos antes de continuar
-    if caution_df.empty and alarm_df.empty:
-        print("Ambos DataFrames están vacíos. No se generará el reporte.")
-        return None  # Return None if both DataFrames are empty
-
-    # Si ambos DataFrames no están vacíos, eliminar la primera y última fila solo del primero
-    if not caution_df.empty and not alarm_df.empty:
-        caution_df = caution_df.iloc[1:-1]
-
-    # Convert 'Date' to datetime for easier manipulation solo si no están vacíos
-    if not caution_df.empty:
-        caution_df['Date'] = pd.to_datetime(caution_df['Date'])
-    if not alarm_df.empty:
-        alarm_df['Date'] = pd.to_datetime(alarm_df['Date'])
-
-    # Concatenar los DataFrames
-    combined_df = pd.concat([caution_df, alarm_df], ignore_index=True)
-
-    # Ordenar las filas por la columna 'Date'
-    combined_df = combined_df.sort_values(by='Date', ascending=True)
-
-    # Ordenar las filas por la columna 'Date', y si hay fechas iguales, por 'Type' (Start primero)
-    combined_df['Type_priority'] = combined_df['Type'].apply(lambda x: 0 if x == 'Start' else 1)
-    combined_df = combined_df.sort_values(by=['Date', 'Type_priority'], ascending=[True, True])
-    combined_df = combined_df.drop(columns=['Type_priority'])  # Eliminar columna auxiliar
+from datetime import datetime
+import matplotlib.dates as mdates
+import matplotlib.patches as mpatches
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 
-    # Crear columna de 'Duration' en formato min:segundos
-    durations = []
-    for i in range(len(combined_df) - 1):
-        end_time = combined_df.iloc[i + 1]['Date']
-        start_time = combined_df.iloc[i]['Date']
-        duration = end_time - start_time
-        durations.append(duration)
-
-    # Añadir una fila vacía para la última duración (no hay un siguiente evento)
-    durations.append('')
-
-    combined_df['Duration'] = durations
-
-
-    # Actualizar la columna 'Status' según las nuevas reglas definidas
-    def update_status(row):
-        if row['Duration'] == pd.Timedelta(0):
-            return 'Grey'
-
-        if row['Type'] == '-':
-            return 'Free-White'
-        elif row['Description'] == 'Caution' and row['Type'] == 'Start':
-            return 'Yellow'
-        elif row['Description'] == 'Caution' and row['Type'] == 'End':
-            if isinstance(row['Duration'], pd.Timedelta) and row['Duration'] < pd.Timedelta(hours=1):
-                return 'Grey'
-            elif isinstance(row['Duration'], pd.Timedelta) and row['Duration'] >= pd.Timedelta(hours=1):
-                return 'Caution-White'
-        elif row['Description'] == 'Alarm' and row['Type'] == 'Start':
-            return 'Red'
-        elif row['Description'] == 'Alarm' and row['Type'] == 'End':
-            return 'Yellow'
-        return ''
-
-    # Aplicar la función para actualizar la columna 'Status'
-    combined_df['Status'] = combined_df.apply(update_status, axis=1)
-
-    # Variables para las duraciones totales por tipo
-    total_yellow_duration = pd.Timedelta(0)
-    total_grey_duration = pd.Timedelta(0)
-    total_red_duration = pd.Timedelta(0)
-    total_white_duration = pd.Timedelta(0)
-
-    # Sumar las duraciones de cada tipo
-    for _, row in combined_df.iterrows():
-        if isinstance(row['Duration'], pd.Timedelta):  # Ignorar duraciones vacías
-            if row['Status'] == 'Yellow':
-                total_yellow_duration += row['Duration']
-            elif row['Status'] == 'Grey':
-                total_grey_duration += row['Duration']
-            elif row['Status'] == 'Red':
-                total_red_duration += row['Duration']
-            elif row['Status'] in ['Free-White', 'Caution-White']:
-                total_white_duration += row['Duration']
-
-    status_colors = {
-        'Grey': 'grey',
-        'Free-White': 'white',
-        'Yellow': 'yellow',
-        'Caution-White': 'white',
-        'Red': 'red'
-    }
-
-    fig, ax = plt.subplots(figsize=(15, 8))
-
-    # Adjust x-axis limits to the specific day
-    start_date = combined_df['Date'].min().normalize()
-    end_date = start_date + pd.Timedelta(days=1)
-    ax.set_xlim(start_date, end_date)
-
-    # Set x-axis ticks every 2 hours
-    ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-
-    # Remove x-axis label
-    ax.set_xlabel('')
-
-    # Set y-axis label
-    ax.set_ylabel('Tipo de Alerta')
-
-    # Plot the bars
-    for i, row in combined_df.iterrows():
-        # Condición para omitir duraciones de cero
-        if isinstance(row['Duration'], pd.Timedelta) and row['Duration'] > pd.Timedelta(0):
-            start = row['Date']
-            duration_in_minutes = row['Duration'].total_seconds() / 60
-            color = status_colors.get(row['Status'], 'black')
-            ax.barh(0, width=duration_in_minutes, left=start, color=color, edgecolor='none')
-            
-            # Formato de duración como hh:mm
-            total_seconds = row['Duration'].total_seconds()
-            hours = int(total_seconds // 3600)
-            minutes = int((total_seconds % 3600) // 60)
-            duration_text = f"{hours:02d}:{minutes:02d}"
-            
-            # Añadir texto verticalmente centrado o hacia abajo para barras blancas
-            if color in ['white', 'grey']:  # Verifica si la barra es blanca
-                ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
-                        fontsize=9, color='black', rotation=90)
-            else:
-                ax.text(start + row['Duration'] / 2, +0, duration_text, ha='center',
-                        fontsize=9, color='black', rotation=90)
-
-    ax.set_yticks([])
-    ax.set_title(f'{report_date} - Sensores Challcobamba', fontsize=16, pad=20, loc='left')
-
-    # Filtrar solo las alertas de interés para la leyenda
-    legend_status = ['Red', 'Yellow', 'Grey']
-    legend_patches = [
-        mpatches.Patch(color=color, label='Alerta Roja' if status == 'Red' else 
-                                        'Alerta Amarilla' if status == 'Yellow' else 
-                                        'Libre entre Alertas <=1hr' if status == 'Grey' else status) 
-        for status, color in status_colors.items() if status in legend_status
-    ]
-
-    # Crear la leyenda arriba a la derecha, encima de la gráfica
-    ax.legend(handles=legend_patches, loc='lower right', bbox_to_anchor=(1, 1.05), ncol=5)
-
-    # Crear la tabla con las métricas
-    total_alert_duration = total_yellow_duration + total_red_duration
-    total_combined_duration = total_alert_duration + total_grey_duration
-
-
-    table_data = [
-        ['Tiempo Alerta Amarilla', format_duration(total_yellow_duration)],
-        ['Tiempo Alerta Roja', format_duration(total_red_duration)],
-        ['Total Alertas (Amarilla+Roja)', format_duration(total_alert_duration)],
-        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total_grey_duration)],
-        ['Total Alertas + Tiempo Libre Entre Alertas', format_duration(total_combined_duration)]
-    ]
-
-
-    # Añadir la tabla a la gráfica
-    table = ax.table(cellText=table_data, loc='bottom', cellLoc='center', colLoc='center', bbox=[0.1, -0.533, 0.8, 0.3])
-
-    # Personalizar las celdas de la tabla
-    for (i, j), cell in table.get_celld().items():
-        if j == -1:  # Títulos de las filas
-            cell.set_fontsize(10)
-            cell.set_text_props(weight='bold')
-            cell.set_facecolor('#ffcccb')
-            cell.set_text_props(color='black')
-        if i == 0:  # Títulos de las columnas
-            cell.set_fontsize(10)
-            cell.set_text_props(weight='bold')
-            cell.set_facecolor('#4CAF50')
-            cell.set_text_props(color='white')
-
-    plt.tight_layout()
-
-    return ax
-
-
-def plot_eventos(df, report_date):
+# ******************************* CÓDIGO ORIGINAL DE PEDRO JESÚS
+def plot_eventos(df):
     # Conversión de fechas
     df['Start'] = pd.to_datetime(df['Start'])
     df['hora'] = df['Start'].dt.hour
@@ -284,7 +63,8 @@ def plot_eventos(df, report_date):
     # Etiquetas y título
     ax.set_xlabel('Horas del día')
     ax.set_ylabel('Eventos')
-    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nSensores Challcobamba', fontsize=16, pad=20)
+    report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nCHALLCOBAMBA', fontsize=16, pad=20)
     ax.set_xticks(x)
     ax.set_xticklabels([f'{h:02d}:00' for h in range(24)])
 
@@ -337,100 +117,306 @@ def plot_eventos(df, report_date):
     return ax
 
 
-def generate_report(df, file_name):
-    report_date = get_reporte_date(file_name)
 
+# ************************ UTILS
+# Función para formatear el tiempo como horas:minutos
+def format_duration(td):
+    if isinstance(td, pd.Timedelta):
+        total_seconds = td.total_seconds()
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        return f"{hours:02d}:{minutes:02d}"
+    return "00:00"  # En caso de que el valor no sea un Timedelta
+
+
+def add_row(df, row_data, position=1):
+    # Crear un DataFrame con la nueva fila
+    new_row = pd.DataFrame([row_data])
+    
+    # Añadir la fila al inicio o al final
+    if position == 1:
+        df = pd.concat([new_row, df], ignore_index=True)
+    elif position == -1:
+        df = pd.concat([df, new_row], ignore_index=True)
+    else:
+        raise ValueError("El parámetro 'position' debe ser 1 (inicio) o -1 (final).")
+    
+    return df
+
+
+def organize_data(df):
     # Verificar las descripciones únicas en la columna 'Description'
-    unique_descriptions = df['Description'].dropna().unique()  # Ignorar valores nulos
+    # Las descrpciones pueden ser: Alarm, Alarm Flash, Caution, Caution flash,
+    # etc.
+    # Ignorar valores nulos - El txt se descarga del sistema con valores nulos
+    #unique_descriptions = df['Description'].dropna().unique()
 
-    # Crear un diccionario para almacenar DataFrames por descripción
-    description_dfs = {}
+    # Para el reporte diario solamente las descripciones Alarm y Caution son de
+    # interés
+    data = df[df['Description'].isin(['Alarm', 'Caution'])]
 
-    for description in unique_descriptions:
-        # Filtrar el DataFrame original para cada descripción
-        filtered_df = df[df['Description'] == description]
+    # Obtener los registros para el Type Start y End
+    data_start = data[['Start', 'Description']].copy()
+    data_start.rename(columns={'Start': 'Date'}, inplace=True)
+    data_start['Type'] = 'Start'
+    data_end = data[['End', 'Description']].copy()
+    data_end.rename(columns={'End': 'Date'}, inplace=True)
+    data_end['Type'] = 'End'
 
-        # Crear un nuevo DataFrame con pares Start-End si 'End' no tiene valores nulos
-        if filtered_df['End'].isna().any():
-            # Si hay valores nulos en 'End', agregar el DataFrame original sin reorganizar
-            description_dfs[description] = filtered_df
-        else:
-            # Reorganizar el DataFrame si no hay valores nulos en 'End'
-            reorganized_data = []
-            for _, row in filtered_df.iterrows():
-                # Agregar el par Start
-                if not pd.isna(row['Start']):
-                    reorganized_data.append({
-                        'Date': row['Start'],
-                        'Description': description,
-                        'Type': 'Start',
-                        'Status': 'Active'
-                    })
-                # Agregar el par End
-                reorganized_data.append({
-                    'Date': row['End'],
-                    'Description': description,
-                    'Type': 'End',
-                    'Status': 'Active'
-                })
+    # Combinar los DataFrames
+    combined_data = pd.concat([data_start, data_end], ignore_index=True)
 
-            # Convertir los datos reorganizados a un DataFrame
-            reorganized_df = pd.DataFrame(reorganized_data)
+    # Ordenar por la columna 'Date'
+    combined_data['Date'] = pd.to_datetime(combined_data['Date'])  # Asegurar formato de fecha
+    combined_data = combined_data.sort_values(by='Date')
 
-            # Obtener la fecha del primer registro y establecer la hora 00:00
-            first_date = pd.to_datetime(reorganized_df['Date'].iloc[0]).normalize()
-            start_of_day = first_date.strftime('%m/%d/%y %H:%M %p')
+    # Reiniciar el índice después de ordenar
+    combined_data.reset_index(drop=True, inplace=True)
 
-            # Crear un registro al inicio
-            reorganized_df = pd.concat([
-                pd.DataFrame([{
-                    'Date': start_of_day,
-                    'Description': description,
-                    'Type': '-',
-                    'Status': 'Active'
-                }]),
-                reorganized_df
-            ], ignore_index=True)
+    # Obtener la primera fecha del DataFrame
+    today = combined_data['Date'].iloc[0]
 
-            # Obtener la fecha del último registro y sumar un día para establecer la hora 00:00
-            last_date = pd.to_datetime(reorganized_df['Date'].iloc[-1]).normalize() + timedelta(days=1)
-            start_of_next_day = last_date.strftime('%m/%d/%y %H:%M %p')
+    # Asegurarse de que 'today' sea un objeto datetime
+    if not isinstance(today, pd.Timestamp):
+        today = pd.to_datetime(today)
 
-            # Crear un registro al final
-            reorganized_df = pd.concat([
-                reorganized_df,
-                pd.DataFrame([{
-                    'Date': start_of_next_day,
-                    'Description': description,
-                    'Type': '-',
-                    'Status': 'Active'
-                }])
-            ], ignore_index=True)
+    # Verificar si la hora es antes de las 7:00 AM
+    #if today.time() > pd.Timestamp("09:00:00").time():
+    #    # Crear start_day con la fecha del día actual a las 00:00 horas
+    #    start_day = pd.Timestamp(today.date())  # Esto pone la hora en 00:00 automáticamente
+    #    end_day = start_day + pd.Timedelta(days=1)
+    #else:
+    #    # Crear start_day con la fecha del día actual a las 07:00 horas
+    #    start_day = pd.Timestamp(today.date()) + pd.Timedelta(hours=7)
+    #    end_day = start_day + pd.Timedelta(days=1)
 
-            # Convertir la columna 'Date' a datetime para asegurarse que se pueda calcular la duración
-            reorganized_df['Date'] = pd.to_datetime(reorganized_df['Date'])
+    start_day = pd.Timestamp(today.date()) + pd.Timedelta(hours=7)
+    end_day = start_day + pd.Timedelta(days=1)
 
-            # Crear columna de Duration en formato min:segundos
-            durations = []
-            for i in range(len(reorganized_df) - 1):
-                end_time = reorganized_df.iloc[i + 1]['Date']
-                duration = end_time - reorganized_df.iloc[i]['Date']
-                durations.append(duration)
+    combined_data['Status'] = None
+    combined_data['Duration'] = None
+    
+    # Agregar una nueva fila al inicio
+    organized_data = add_row(
+        combined_data,
+        row_data={'Date': start_day, 'Description': None, 'Type': None, 'Status': 'White', 'Duration': None},
+        position=1
+    )
 
-            # El último registro no tiene duración, así que lo dejamos vacío
-            durations.append("")
+    organized_data = add_row(
+        organized_data,
+        row_data={'Date': end_day, 'Description': None, 'Type': None, 'Status': 'White', 'Duration': None},
+        position=-1
+    )
 
-            # Asignar la columna de duración al DataFrame reorganizado
-            reorganized_df['Duration'] = durations
+    # Calcular la duración entre cada par de filas consecutivas
+    for i in range(1, len(organized_data)):
+        # Restar el Date de la fila anterior del Date de la fila actual
+        duration = organized_data.loc[i, 'Date'] - organized_data.loc[i - 1, 'Date']
+        organized_data.loc[i-1, 'Duration'] = duration  # Convertir a segundos
 
-            # Agregar al diccionario
-            description_dfs[description] = reorganized_df
+    return organized_data
 
-    # Generar la gráfica Diaria
-    caution_df = description_dfs.get('Caution', pd.DataFrame())  # Si no existe, devuelve un DataFrame vacío
-    alarm_df = description_dfs.get('Alarm', pd.DataFrame())  # Si no existe, devuelve un DataFrame vacío
-    ax_1 = generate_daily_report(caution_df, alarm_df, report_date)  # Get ax object from the report function
-    ax_2 = plot_eventos(df, report_date)
+
+def set_status(organized_data):
+    is_alarm_before = False
+    is_end_after = False
+
+    # Llenar la columna 'Status' con base en las reglas
+    for i in range(len(organized_data)):
+        # ******************************* ALARM ********************************
+        if organized_data.loc[i, 'Description'] == 'Alarm':
+            # **************************************************** ALARM - START
+            if organized_data.loc[i, 'Type'] == 'Start':
+                organized_data.loc[i, 'Status'] = 'Red'
+
+
+            # ****************************************************** ALARM - END
+            elif organized_data.loc[i, 'Type'] == 'End':
+                try:
+                  if organized_data.loc[i+1, 'Description'] == 'Alarm' and organized_data.loc[i+1, 'Type'] == 'End':
+                      is_end_after = True
+                except:
+                  pass
+
+                if is_end_after:
+                    organized_data.loc[i, 'Status'] = 'Red'
+                    is_end_after = False
+                else:
+                    organized_data.loc[i, 'Status'] = 'Yellow'
+
+
+
+        # ************************* CAUTION ************************************
+        elif organized_data.loc[i, 'Description'] == 'Caution':
+
+            # **************************************************** CAUTION - END
+            if organized_data.loc[i, 'Type'] == 'End':
+                duration_hours = organized_data.loc[i, 'Duration'].seconds / 3600  # Calcular la duración en horas
+                if duration_hours > 1:
+                    organized_data.loc[i, 'Status'] = 'White'
+                else:
+                    organized_data.loc[i, 'Status'] = 'Gray'
+
+            # ************************************************** CAUTION - START
+            elif organized_data.loc[i, 'Type'] == 'Start':
+                try:
+                  if organized_data.loc[i-1, 'Description'] == 'Alarm':
+                      is_alarm_before = True
+                except:
+                  pass
+
+                if is_alarm_before:
+                    organized_data.loc[i, 'Status'] = 'Red'
+                    is_alarm_before = False
+                else:
+                    organized_data.loc[i, 'Status'] = 'Yellow'
+
+    final_data = organized_data.copy()
+
+    # Validar si existen "rangos de Status" para sumarlos
+    new_data = []
+    status = None
+
+    for i in range(len(final_data)):
+      if final_data.loc[i, 'Description'] == None:
+          new_data.append(final_data.loc[i].copy())
+      else:
+          if status != final_data.loc[i, 'Status']:
+            status = final_data.loc[i, 'Status']
+            new_data.append(final_data.loc[i].copy())
+          else:
+            new_data[-1]['Duration'] += final_data.loc[i, 'Duration']
+    new_data = pd.DataFrame(new_data)
+
+    return new_data
+
+
+def get_daily_plot(final_data):
+    # Variables para las duraciones totales por tipo
+    total_yellow_duration = pd.Timedelta(0)
+    total_gray_duration = pd.Timedelta(0)
+    total_red_duration = pd.Timedelta(0)
+    total_white_duration = pd.Timedelta(0)
+
+    # Sumar las duraciones de cada tipo
+    for _, row in final_data.iterrows():
+        if isinstance(row['Duration'], pd.Timedelta):  # Ignorar duraciones vacías o None
+            if row['Status'] == 'Yellow':
+                total_yellow_duration += row['Duration']
+            elif row['Status'] == 'Gray':
+                total_gray_duration += row['Duration']
+            elif row['Status'] == 'Red':
+                total_red_duration += row['Duration']
+            elif row['Status'] == 'White':
+                total_white_duration += row['Duration']
+
+    status_colors = {
+        'Gray': 'grey',
+        'White': 'white',
+        'Yellow': 'yellow',
+        'Red': 'red'
+    }
+
+    fig, ax = plt.subplots(figsize=(15, 8))
+
+    start_date = final_data['Date'].min()
+    end_date = final_data['Date'].max()
+    ax.set_xlim(start_date, end_date)
+    ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+
+    # Plot the bars
+    for i, row in final_data.iterrows():
+        # Condición para omitir duraciones de cero
+        if isinstance(row['Duration'], pd.Timedelta) and row['Duration'] > pd.Timedelta(0):
+            start = row['Date']
+            duration_in_minutes = row['Duration'].total_seconds() / 60
+            color = status_colors.get(row['Status'], 'black')
+            ax.barh(0, width=duration_in_minutes, left=start, color=color, edgecolor='none')
+            
+            # Formato de duración como hh:mm
+            total_seconds = row['Duration'].total_seconds()
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            duration_text = f"{hours:02d}:{minutes:02d}"
+            
+            # Añadir texto verticalmente centrado o hacia abajo para barras blancas
+            if color in ['white']:  # Verifica si la barra es blanca
+                ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
+                        fontsize=9, color='black', rotation=90)
+            else:
+                ax.text(start + row['Duration'] / 2, 0, duration_text, ha='center',
+                        fontsize=9, color='black', rotation=90)
+
+    ax.set_yticks([])
+
+    # Obtener la fecha DD/MM/YYYY de la segunda columna de date
+    report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
+    ax.set_title(f'{report_date} - CHALLCOBAMBA', fontsize=16, pad=20, loc='left')
+
+    # Remove x-axis label
+    ax.set_xlabel('')
+
+    # Set y-axis label
+    ax.set_ylabel('Tipo de Alerta')
+        # Filtrar solo las alertas de interés para la leyenda
+    legend_status = ['Red', 'Yellow', 'Grey']
+    legend_patches = [
+        mpatches.Patch(color=color, label='Alerta Roja' if status == 'Red' else 
+                                        'Alerta Amarilla' if status == 'Yellow' else 
+                                        'Libre entre Alertas <=1hr' if status == 'Grey' else status) 
+        for status, color in status_colors.items() if status in legend_status
+    ]
+
+    # Crear la leyenda arriba a la derecha, encima de la gráfica
+    ax.legend(handles=legend_patches, loc='lower right', bbox_to_anchor=(1, 1.05), ncol=5)
+
+    # Crear la tabla con las métricas
+    total_alert_duration = total_yellow_duration + total_red_duration
+    total_combined_duration = total_alert_duration + total_gray_duration
+
+
+    table_data = [
+        ['Tiempo Alerta Amarilla', format_duration(total_yellow_duration)],
+        ['Tiempo Alerta Roja', format_duration(total_red_duration)],
+        ['Total Alertas (Amarilla+Roja)', format_duration(total_alert_duration)],
+        ['Total Tiempo Libre Entre Alertas (<=1Hr)', format_duration(total_gray_duration)],
+        ['Total Alertas + Tiempo Libre Entre Alertas', format_duration(total_combined_duration)]
+    ]
+
+
+    # Añadir la tabla a la gráfica
+    table = ax.table(cellText=table_data, loc='bottom', cellLoc='center', colLoc='center', bbox=[0.1, -0.533, 0.8, 0.3])
+
+    # Personalizar las celdas de la tabla
+    for (i, j), cell in table.get_celld().items():
+        if j == -1:  # Títulos de las filas
+            cell.set_fontsize(10)
+            cell.set_text_props(weight='bold')
+            cell.set_facecolor('#ffcccb')
+            cell.set_text_props(color='black')
+        if i == 0:  # Títulos de las columnas
+            cell.set_fontsize(10)
+            cell.set_text_props(weight='bold')
+            cell.set_facecolor('#4CAF50')
+            cell.set_text_props(color='white')
+
+    plt.tight_layout()
+
+    return ax
+
+
+def generate_reports(df):
+    report_date = df.iloc[1]['Start']
+        
+    organized_data = organize_data(df)
+    final_data = set_status(organized_data)
+
+    ax_1 = get_daily_plot(final_data)
+    ax_2 = plot_eventos(df)
+    
 
     # Mostrar la primera gráfica en Streamlit
     st.subheader("Gráfica de Alertas por Día")
@@ -461,7 +447,7 @@ def generate_report(df, file_name):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
+    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.png", width=Pt(100))
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
@@ -494,7 +480,7 @@ def generate_report(df, file_name):
 
     # Configurar el contenido del footer
     footer_paragraph.text = (
-        f"{today_date} Supervisión de Mantenimiento Eléctrico-Telecomunicaciones"
+        f"{today_date} Supervisión de Mantenimiento en Telecomunicaciones"
     )
     footer_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER  # Centrar el texto
 
@@ -532,7 +518,7 @@ def cargar_archivo():
             # Botón para generar reportes (aunque no está implementado, lo mostramos)
             if st.button("Generar Reportes"):
                 st.write("Generando reportes...")
-                generate_report(df, archivo.name)
+                generate_reports(df)
         
         except Exception as e:
             st.error(f"Ocurrió un error al leer el archivo: {e}")
@@ -547,9 +533,8 @@ try:
 except FileNotFoundError:
     st.warning("No se encontró la imagen en la ruta especificada.")
 
+
 # Título largo de la app
-st.title("Generador de Reportes Diarios CHALLCOBAMBA")
-
-
+st.title("Generador de Reportes Diarios de Alertas por Descargas Eléctricas Atmosféricas")
 # Llamar a la función para cargar el archivo
 cargar_archivo()
