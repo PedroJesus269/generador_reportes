@@ -343,7 +343,7 @@ def get_daily_plot(final_data):
             duration_text = f"{hours:02d}:{minutes:02d}"
             
             # Añadir texto verticalmente centrado o hacia abajo para barras blancas
-            if color in ['white','grey']:  # Verifica si la barra es blanca
+            if color in ['white', 'grey']:  # Verifica si la barra es blanca
                 ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
             else:
