@@ -64,7 +64,7 @@ def plot_eventos(df):
     ax.set_xlabel('Horas del día')
     ax.set_ylabel('Eventos')
     report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
-    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nSensor 2 Mirador Evelyn', fontsize=16, pad=20)
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nFerrobamba', fontsize=16, pad=20)
     ax.set_xticks(x)
     ax.set_xticklabels([f'{h:02d}:00' for h in range(24)])
 
@@ -354,7 +354,7 @@ def get_daily_plot(final_data):
 
     # Obtener la fecha DD/MM/YYYY de la segunda columna de date
     report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date} - Sensores Mina', fontsize=16, pad=20, loc='left')
+    ax.set_title(f'{report_date} - Ferrobamba', fontsize=16, pad=20, loc='left')
 
     # Remove x-axis label
     ax.set_xlabel('')
