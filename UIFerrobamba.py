@@ -68,6 +68,7 @@ def plot_eventos(df):
     ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nFerrobamba', fontsize=16, pad=20)
     ax.set_xticks(x)
     ax.set_xticklabels([f'{(7 + i) % 24:02d}:00' for i in range(24)])
+    ax.set_xlim(-0.5, 23.5)
 
     # Rotar las etiquetas del eje X
     plt.xticks(rotation=90)
