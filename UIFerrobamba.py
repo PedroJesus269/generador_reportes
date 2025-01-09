@@ -36,10 +36,11 @@ def plot_eventos(df):
 
     # Crear un DataFrame con ambos conteos
     conteos = pd.DataFrame({
-        'Amarilla': contador_tipo_1.reindex(range(24), fill_value=0),
-        'Roja': contador_tipo_2_y_3.reindex(range(24), fill_value=0)
+        'Amarilla': contador_tipo_1.reindex(range(7, 31), fill_value=0),
+        'Roja': contador_tipo_2_y_3.reindex(range(7, 31), fill_value=0)
     }).fillna(0)
-
+    # Asignar las horas desde las 7:00 a.m. hasta las 7:00 a.m. del día siguiente
+    conteos.index = [f'{(h % 24):02d}:00' for h in range(7, 31)]
     # Calcular el total, promedio y máximo para cada tipo de evento
     total_tipo_1 = conteos['Amarilla'].sum()
     promedio_tipo_1 = conteos['Amarilla'].mean()
@@ -66,7 +67,7 @@ def plot_eventos(df):
     report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
     ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nFerrobamba', fontsize=16, pad=20)
     ax.set_xticks(x)
-    ax.set_xticklabels([f'{h:02d}:00' for h in range(24)])
+    ax.set_xticklabels([f'{(7 + i) % 24:02d}:00' for i in range(24)])
 
     # Rotar las etiquetas del eje X
     plt.xticks(rotation=90)
