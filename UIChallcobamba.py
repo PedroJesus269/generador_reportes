@@ -449,7 +449,8 @@ def generate_reports(df):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.png", width=Pt(100))
+    #cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.png", width=Pt(100))
+
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
