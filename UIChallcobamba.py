@@ -36,10 +36,11 @@ def plot_eventos(df):
 
     # Crear un DataFrame con ambos conteos
     conteos = pd.DataFrame({
-        'Amarilla': contador_tipo_1.reindex(range(24), fill_value=0),
-        'Roja': contador_tipo_2_y_3.reindex(range(24), fill_value=0)
+        'Amarilla': contador_tipo_1.reindex(range(7, 31), fill_value=0),
+        'Roja': contador_tipo_2_y_3.reindex(range(7, 31), fill_value=0)
     }).fillna(0)
-
+    # Asignar las horas desde las 7:00 a.m. hasta las 7:00 a.m. del día siguiente
+    conteos.index = [f'{(h % 24):02d}:00' for h in range(7, 31)]
     # Calcular el total, promedio y máximo para cada tipo de evento
     total_tipo_1 = conteos['Amarilla'].sum()
     promedio_tipo_1 = conteos['Amarilla'].mean()
@@ -64,9 +65,10 @@ def plot_eventos(df):
     ax.set_xlabel('Horas del día')
     ax.set_ylabel('Eventos')
     report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
-    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nCHALLCOBAMBA', fontsize=16, pad=20)
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nChallcobamba', fontsize=16, pad=20)
     ax.set_xticks(x)
-    ax.set_xticklabels([f'{h:02d}:00' for h in range(24)])
+    ax.set_xticklabels([f'{(7 + i) % 24:02d}:00' for i in range(24)])
+    ax.set_xlim(-0.5, 23.5)
 
     # Rotar las etiquetas del eje X
     plt.xticks(rotation=90)
@@ -343,18 +345,18 @@ def get_daily_plot(final_data):
             duration_text = f"{hours:02d}:{minutes:02d}"
             
             # Añadir texto verticalmente centrado o hacia abajo para barras blancas
-            if color in ['white']:  # Verifica si la barra es blanca
+            if color in ['white', 'grey']:  # Verifica si la barra es blanca
                 ax.text(start + row['Duration'] / 2, -0.3, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
             else:
-                ax.text(start + row['Duration'] / 2, 0, duration_text, ha='center',
+                ax.text(start + row['Duration'] / 2, +0, duration_text, ha='center',
                         fontsize=9, color='black', rotation=90)
 
     ax.set_yticks([])
 
     # Obtener la fecha DD/MM/YYYY de la segunda columna de date
     report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date} - CHALLCOBAMBA', fontsize=16, pad=20, loc='left')
+    ax.set_title(f'{report_date} - Challcobamba', fontsize=16, pad=20, loc='left')
 
     # Remove x-axis label
     ax.set_xlabel('')
@@ -447,7 +449,7 @@ def generate_reports(df):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.png", width=Pt(100))
+    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
