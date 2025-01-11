@@ -458,7 +458,7 @@ def generate_reports(df):
     title_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     subtitle_paragraph = cell_title.add_paragraph(
-        f"De: {report_date} 00:00 horas\tA: {report_date} 23:59 horas"
+        f"De: {report_date} 00:07 horas\tA: {report_date} 00:07 horas"
     )
     subtitle_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
