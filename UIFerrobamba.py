@@ -10,6 +10,7 @@ from docx.shared import Inches
 from docx.shared import Pt
 from docx import Document
 from io import BytesIO
+from datetime import timedelta
 
 
 from datetime import datetime
