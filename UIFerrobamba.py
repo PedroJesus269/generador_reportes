@@ -362,12 +362,8 @@ def get_daily_plot(final_data):
     ax.set_yticks([])
 
     # Obtener la fecha DD/MM/YYYY de la segunda columna de date
-    report_date = final_data.iloc[1]['Date']
-    next_date = report_date + timedelta(days=1)
-    report_date_str = report_date.strftime('%d/%m/%Y')
-    next_date_str = next_date.strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date_str} - {next_date_str} - FERROBAMBA', fontsize=16, pad=20, loc='left')
-
+    report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
+    ax.set_title(f'{report_date} - Sensores Mina', fontsize=16, pad=20, loc='left')
 
     # Remove x-axis label
     ax.set_xlabel('')
@@ -468,7 +464,7 @@ def generate_reports(df):
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
     title_paragraph = cell_title.paragraphs[0]
-    title_paragraph.add_run("REPORTE DIARIO DE ALERTAS FERROBAMBA\n").bold = True
+    title_paragraph.add_run("REPORTE DIARIO DE ALERTAS POR DESCARGAS ELÉCTRICAS ATMOSFÉRICAS\n").bold = True
     title_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     subtitle_paragraph = cell_title.add_paragraph(
@@ -554,6 +550,6 @@ except FileNotFoundError:
 
 
 # Título largo de la app
-st.title("Generador de Reportes Diarios FERROBAMBA")
+st.title("Generador de Reportes Diarios de Alertas por Descargas Eléctricas Atmosféricas")
 # Llamar a la función para cargar el archivo
 cargar_archivo()
