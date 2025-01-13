@@ -73,17 +73,10 @@ def plot_eventos(df):
     # Etiquetas y título
     ax.set_xlabel('Horas del día')
     ax.set_ylabel('Eventos')
-    # Calcular la nueva fecha sumando un día
-    report_date_next_day = add_day_to_date(report_date)
-    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date} a {report_date_next_day}\nSensores Ferrobamba', fontsize=16, pad=20)
-    # Rango de etiquetas: 07:00 a 07:00 del día siguiente
-    horas = [f'{(h % 24):02d}:00' for h in range(7, 31)]  # 7 a 30, ajustando al formato de 24 horas
-    x_ticks = range(len(horas))  # Posiciones en el eje X
-    # Configuración de las marcas y etiquetas del eje X
-    ax.set_xticks(x_ticks)  # Configurar las posiciones de las marcas
-    ax.set_xticklabels(horas)  # Establecer las etiquetas correspondientes
-    #ax.set_xticks(x)
-    #ax.set_xticklabels([f'{h:02d}:00' for h in range(24)])
+    report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nSensor 2 Mirador Evelyn', fontsize=16, pad=20)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f'{(h % 24):02d}:00' for h in range(7, 24)] + [f'{(h % 24):02d}:00' for h in range(0, 7)])
 
     # Rotar las etiquetas del eje X
     plt.xticks(rotation=90)
@@ -369,8 +362,12 @@ def get_daily_plot(final_data):
     ax.set_yticks([])
 
     # Obtener la fecha DD/MM/YYYY de la segunda columna de date
-    report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date} - Sensores Mina', fontsize=16, pad=20, loc='left')
+    report_date = final_data.iloc[1]['Date']
+    next_date = report_date + timedelta(days=1)
+    report_date_str = report_date.strftime('%d/%m/%Y')
+    next_date_str = next_date.strftime('%d/%m/%Y')
+    ax.set_title(f'{report_date_str} - {next_date_str} - FERROBAMBA', fontsize=16, pad=20, loc='left')
+
 
     # Remove x-axis label
     ax.set_xlabel('')
@@ -471,12 +468,11 @@ def generate_reports(df):
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
     title_paragraph = cell_title.paragraphs[0]
-    title_paragraph.add_run("REPORTE DIARIO DE ALERTAS POR DESCARGAS ELÉCTRICAS ATMOSFÉRICAS\n").bold = True
+    title_paragraph.add_run("REPORTE DIARIO DE ALERTAS FERROBAMBA\n").bold = True
     title_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    report_date_next_day = add_day_to_date(report_date)
     subtitle_paragraph = cell_title.add_paragraph(
-        f"De: {report_date} 07:00 horas\tA: {report_date_next_day} 07:00 horas"
+        f"De: {report_date_start} 07:00 horas\tA: {report_date_end} 07:00 horas"
     )
     subtitle_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
@@ -518,7 +514,7 @@ def generate_reports(df):
     st.download_button(
         label="Descargar Informe",
         data=doc_buffer,
-        file_name=f"REPORTE DIARIO FERROBAMBA {report_date}-{report_date_next_day}.docx",
+        file_name=f"informe_generado-{report_date_start}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
