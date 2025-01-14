@@ -553,6 +553,6 @@ except FileNotFoundError:
 
 
 # Título largo de la app
-st.title("Generador de Reportes Diarios de Alertas por Descargas Eléctricas Atmosféricas")
+st.title("Generador de Reportes Diarios de Alertas FERROBAMBA")
 # Llamar a la función para cargar el archivo
 cargar_archivo()
