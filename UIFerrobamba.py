@@ -75,7 +75,7 @@ def plot_eventos(df):
     ax.set_xlabel('Horas del día')
     ax.set_ylabel('Eventos')
     report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
-    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nFerrobamba', fontsize=16, pad=20)
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día\nFerrobamba', fontsize=16, pad=20)
     ax.set_xticks(x)
     ax.set_xticklabels([f'{(h % 24):02d}:00' for h in range(7, 24)] + [f'{(h % 24):02d}:00' for h in range(0, 7)])
 
