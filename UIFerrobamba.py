@@ -367,7 +367,7 @@ def get_daily_plot(final_data):
     next_date = report_date + timedelta(days=1)
     report_date_str = report_date.strftime('%d/%m/%Y')
     next_date_str = next_date.strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date_str} - {next_date_str} - Sensores Mina', fontsize=16, pad=20, loc='left')
+    ax.set_title(f'{report_date_str} - {next_date_str} - FERROBAMBA', fontsize=16, pad=20, loc='left')
 
     # Remove x-axis label
     ax.set_xlabel('')
@@ -513,7 +513,7 @@ def generate_reports(df):
     st.download_button(
         label="Descargar Informe",
         data=doc_buffer,
-        file_name=f"informe_generado-{report_date_start}.docx",
+        file_name=f"FERROBAMBA-{Ultimas 24 horas}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
