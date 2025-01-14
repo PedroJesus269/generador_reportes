@@ -486,7 +486,7 @@ def generate_reports(df):
 
 
     # Obtener la fecha actual
-    now = datetime.now()
+    now = datetime.today().date()
 
     # Formatear la fecha manualmente
     today_date = f"{now.day} de {meses_es[now.month]} del {now.year}"
