@@ -367,7 +367,7 @@ def get_daily_plot(final_data):
     next_date = report_date + timedelta(days=1)
     report_date_str = report_date.strftime('%d/%m/%Y')
     next_date_str = next_date.strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date_str} - {next_date_str} - Sensores Mina', fontsize=16, pad=20, loc='left')
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date_str} - {next_date_str}\nSensor 2 Mirador Evelyn', fontsize=16, pad=20)
 
     # Remove x-axis label
     ax.set_xlabel('')
