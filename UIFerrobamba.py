@@ -486,7 +486,7 @@ def generate_reports(df):
 
 
     # Obtener la fecha actual
-    timezone = pytz.timezone("America/Peru/Lima")
+    timezone = pytz.timezone("America/Lima")
     now = datetime.now(timezone)
 
     # Formatear la fecha manualmente
