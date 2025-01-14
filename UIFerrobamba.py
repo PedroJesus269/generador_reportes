@@ -10,6 +10,7 @@ from docx.shared import Inches
 from docx.shared import Pt
 from docx import Document
 from io import BytesIO
+from datetime import timedelta
 
 
 from datetime import datetime
@@ -362,8 +363,12 @@ def get_daily_plot(final_data):
     ax.set_yticks([])
 
     # Obtener la fecha DD/MM/YYYY de la segunda columna de date
-    report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date} - Sensores Mina', fontsize=16, pad=20, loc='left')
+    report_date = final_data.iloc[1]['Date']
+    next_date = report_date + timedelta(days=1)
+    report_date_str = report_date.strftime('%d/%m/%Y')
+    next_date_str = next_date.strftime('%d/%m/%Y')
+    ax.set_title(f'{report_date_str} - {next_date_str} - Sensores Mina', fontsize=16, pad=20, loc='left')
+    
 
     # Remove x-axis label
     ax.set_xlabel('')
@@ -418,8 +423,10 @@ def get_daily_plot(final_data):
 
 
 def generate_reports(df):
-    report_date_start = pd.to_datetime(df.iloc[1]['Start']).strftime('%d/%m/%Y')
-    report_date_end = pd.to_datetime(df.iloc[-1]['Start']).strftime('%d/%m/%Y')
+    report_date_start = pd.to_datetime(df.iloc[1]['Start']).strftime('%d/%m/%Y %I:%M %p')
+    report_date_end = pd.to_datetime(df.iloc[-1]['Start']).strftime('%d/%m/%Y %I:%M %p')
+    print(report_date_start)
+    print(report_date_end)
         
     organized_data = organize_data(df)
     final_data = set_status(organized_data)
@@ -457,7 +464,7 @@ def generate_reports(df):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.png", width=Pt(100))
+    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
