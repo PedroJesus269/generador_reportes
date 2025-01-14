@@ -11,7 +11,7 @@ from docx.shared import Pt
 from docx import Document
 from io import BytesIO
 from datetime import timedelta
-
+import pytz
 
 from datetime import datetime
 import matplotlib.dates as mdates
@@ -486,10 +486,11 @@ def generate_reports(df):
 
 
     # Obtener la fecha actual
-    now = datetime.today().date()
+    timezone = pytz.timezone("America/Argentina/Buenos_Aires")
+    now = datetime.now(timezone)
 
     # Formatear la fecha manualmente
-    today_date = f"{now.day} de {meses_es[now.month]} del {now.year}"
+    today_date = now.date()
 
     # Configurar el pie de página
     footer = section.footer  # Acceder al footer de la sección
