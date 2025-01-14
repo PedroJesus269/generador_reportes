@@ -10,7 +10,8 @@ from docx.shared import Inches
 from docx.shared import Pt
 from docx import Document
 from io import BytesIO
-
+from datetime import timedelta
+import pytz
 
 from datetime import datetime
 import matplotlib.dates as mdates
@@ -20,27 +21,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+meses_es = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+}
+
+
 # ******************************* CÓDIGO ORIGINAL DE PEDRO JESÚS
 def plot_eventos(df):
     # Conversión de fechas
     df['Start'] = pd.to_datetime(df['Start'])
     df['hora'] = df['Start'].dt.hour
 
-    # Contar los eventos por hora y por tipo
-    contador_tipo_1 = df[df['Description'] == 'Caution Flash'].groupby('hora').size()  # Amarillo
-    contador_tipo_2 = df[df['Description'] == 'Alarm Flash'].groupby('hora').size()  # Roja
-    contador_tipo_3 = df[df['Description'] == 'Warning Flash'].groupby('hora').size()  # Naranja
+    # Filtrar solo las horas entre las 7:00 y las 7:00 del día siguiente
+    df_filtrado = df[(df['hora'] >= 7) & (df['hora'] < 7 + 24)]
+
+    # Contar los eventos por hora y por tipo (en el dataframe filtrado)
+    contador_tipo_1 = df_filtrado[df_filtrado['Description'] == 'Caution Flash'].groupby('hora').size()  # Amarillo
+    contador_tipo_2 = df_filtrado[df_filtrado['Description'] == 'Alarm Flash'].groupby('hora').size()  # Roja
+    contador_tipo_3 = df_filtrado[df_filtrado['Description'] == 'Warning Flash'].groupby('hora').size()  # Naranja
 
     # Sumar Alarm Flash y Caution Flash
     contador_tipo_2_y_3 = contador_tipo_2.add(contador_tipo_3, fill_value=0)
 
-    # Crear un DataFrame con ambos conteos
+    # Crear un DataFrame con ambos conteos (ajustado al rango de horas de 7 a 7)
     conteos = pd.DataFrame({
-        'Amarilla': contador_tipo_1.reindex(range(7, 31), fill_value=0),
-        'Roja': contador_tipo_2_y_3.reindex(range(7, 31), fill_value=0)
+        'Amarilla': contador_tipo_1.reindex(range(7, 7 + 24), fill_value=0),
+        'Roja': contador_tipo_2_y_3.reindex(range(7, 7 + 24), fill_value=0)
     }).fillna(0)
-    # Asignar las horas desde las 7:00 a.m. hasta las 7:00 a.m. del día siguiente
-    conteos.index = [f'{(h % 24):02d}:00' for h in range(7, 31)]
+
     # Calcular el total, promedio y máximo para cada tipo de evento
     total_tipo_1 = conteos['Amarilla'].sum()
     promedio_tipo_1 = conteos['Amarilla'].mean()
@@ -51,7 +61,7 @@ def plot_eventos(df):
     maximo_tipo_2_y_3 = conteos['Roja'].max()
 
     # Definir la posición de las barras
-    x = np.arange(len(conteos))  # Las posiciones de las horas
+    x = np.arange(len(conteos))  # Las posiciones de las horas (de 7 a 7+24)
     width = 0.35  # Ancho de las barras
 
     # Crear el subplot
@@ -65,10 +75,9 @@ def plot_eventos(df):
     ax.set_xlabel('Horas del día')
     ax.set_ylabel('Eventos')
     report_date = df.iloc[1]['Start'].strftime('%d/%m/%Y')
-    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día {report_date}\nChallcobamba', fontsize=16, pad=20)
+    ax.set_title(f'Frecuencia de descargas eléctricas por hora del día\nChallcobamba', fontsize=16, pad=20)
     ax.set_xticks(x)
-    ax.set_xticklabels([f'{(7 + i) % 24:02d}:00' for i in range(24)])
-    ax.set_xlim(-0.5, 23.5)
+    ax.set_xticklabels([f'{(h % 24):02d}:00' for h in range(7, 24)] + [f'{(h % 24):02d}:00' for h in range(0, 7)])
 
     # Rotar las etiquetas del eje X
     plt.xticks(rotation=90)
@@ -117,7 +126,6 @@ def plot_eventos(df):
 
     # Devolver el gráfico sin mostrarlo
     return ax
-
 
 
 # ************************ UTILS
@@ -355,8 +363,11 @@ def get_daily_plot(final_data):
     ax.set_yticks([])
 
     # Obtener la fecha DD/MM/YYYY de la segunda columna de date
-    report_date = final_data.iloc[1]['Date'].strftime('%d/%m/%Y')
-    ax.set_title(f'{report_date} - Challcobamba', fontsize=16, pad=20, loc='left')
+    report_date = final_data.iloc[1]['Date']
+    next_date = report_date + timedelta(days=1)
+    report_date_str = report_date.strftime('%d/%m/%Y')
+    next_date_str = next_date.strftime('%d/%m/%Y')
+    ax.set_title(f'{report_date_str} - {next_date_str} - CHALLCOBAMBA', fontsize=16, pad=20, loc='left')
 
     # Remove x-axis label
     ax.set_xlabel('')
@@ -411,7 +422,8 @@ def get_daily_plot(final_data):
 
 
 def generate_reports(df):
-    report_date = df.iloc[1]['Start']
+    report_date_start = pd.to_datetime(df.iloc[1]['Start']).strftime('%d/%m/%Y')
+    report_date_end = pd.to_datetime(df.iloc[-1]['Start']).strftime('%d/%m/%Y')
         
     organized_data = organize_data(df)
     final_data = set_status(organized_data)
@@ -449,8 +461,7 @@ def generate_reports(df):
     header_table.columns[0].width = Pt(50)
 
     cell_logo = header_table.cell(0, 0)
-    # cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
-
+    cell_logo.paragraphs[0].add_run().add_picture("images/logo_doc.PNG", width=Pt(100))
 
     cell_title = header_table.cell(0, 1)
     header_table.cell(0, 1).width = Pt(1250)
@@ -459,7 +470,7 @@ def generate_reports(df):
     title_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
     subtitle_paragraph = cell_title.add_paragraph(
-        f"De: {report_date} 00:00 horas\tA: {report_date} 23:59 horas"
+        f"De: {report_date_start} 07:00 horas\tA: {report_date_end} 07:00 horas"
     )
     subtitle_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
@@ -474,8 +485,12 @@ def generate_reports(df):
     last_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
 
-    # Obtener la fecha actual para el footer
-    today_date = datetime.now().strftime("%d de %B del %Y")
+    # Obtener la fecha actual
+    timezone = pytz.timezone("America/Lima")
+    now = datetime.now(timezone)
+
+    # Formatear la fecha manualmente
+    today_date = f"{now.day} de {meses_es[now.month]} del {now.year}"
 
     # Configurar el pie de página
     footer = section.footer  # Acceder al footer de la sección
@@ -498,7 +513,7 @@ def generate_reports(df):
     st.download_button(
         label="Descargar Informe",
         data=doc_buffer,
-        file_name=f"informe_generado-{report_date}.docx",
+        file_name=f"CHALLCOBAMBA-{today_date}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
@@ -538,6 +553,6 @@ except FileNotFoundError:
 
 
 # Título largo de la app
-st.title("Generador de Reportes Diarios de Alertas por Descargas Eléctricas Atmosféricas")
+st.title("Generador de Reportes Diarios de Alertas CHALLCOBAMBA")
 # Llamar a la función para cargar el archivo
 cargar_archivo()
