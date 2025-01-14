@@ -490,7 +490,7 @@ def generate_reports(df):
     now = datetime.now(timezone)
 
     # Formatear la fecha manualmente
-    today_date = now.date()
+    today_date = f"{now.day} de {meses_es[now.month]} del {now.year}"
 
     # Configurar el pie de página
     footer = section.footer  # Acceder al footer de la sección
