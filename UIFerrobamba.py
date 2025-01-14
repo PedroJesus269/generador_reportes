@@ -513,7 +513,7 @@ def generate_reports(df):
     st.download_button(
         label="Descargar Informe",
         data=doc_buffer,
-        file_name=f"FERROBAMBA-{Ultimas 24 horas}.docx",
+        file_name=f"FERROBAMBA-{today_date}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
